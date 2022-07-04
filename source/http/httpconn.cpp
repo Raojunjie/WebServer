@@ -188,8 +188,8 @@ bool HttpConn::readOnce(){
 }
 
 /*
-*功能: 发送响应报文
-*返回值：是否关闭连接
+*功能: EPOLLOUT被触发，将内核写缓冲区由满变为未满，将用户写缓冲区的数据发送出去
+*返回值：true: 连接继续存在；FALSE： 连接需要被关闭
 */
 bool HttpConn::write(){
     int tmp = 0;
@@ -203,7 +203,7 @@ bool HttpConn::write(){
         /* 通过_sockFd向客户端发送数据，依次发送iv[0],iv[1],返回发送的字节数 */
         tmp = writev(_sockFd, _iv, _ivCount);
         if(tmp < 0){
-            /* 写缓冲区满了，则等待下一轮EPOLLOUT事件，重置EPOLLONESHOT */
+            /* 写缓冲区满了，则重新注册EPOLLOUT事件，重置EPOLLONESHOT */
             if(errno == EAGAIN){
                 modFd(_epollFd, _sockFd, EPOLLOUT, _trigMode);
                 return true;
@@ -230,11 +230,11 @@ bool HttpConn::write(){
         /* 没有数据发送了 */
         if(_bytesToSend <= 0){
             unmap();
-            /* 重置EPOLLONESHOT */
+            /* 不再注册EPOLLOUT, 重置EPOLLONESHOT */
             modFd(_epollFd, _sockFd, EPOLLIN, _trigMode);
             /* 如果保持连接 */
             if(_linger){
-                /* 重新初始化http对象 */
+                /* 本次请求结束，重新初始化http对象 */
                 init();
                 return true;
             }
@@ -256,7 +256,7 @@ void HttpConn::unmap(){
 }
 
 /*
-*功能: 读取数据后，处理客户端的请求
+*功能: 读取数据后，处理客户端的请求，并将响应报文写入用户缓冲区，准备发送
 */
 void HttpConn::process(){
     /* 解析http请求 */
@@ -266,13 +266,13 @@ void HttpConn::process(){
         modFd(_epollFd, _sockFd, EPOLLIN, _trigMode);
         return;
     }
-    /* 有请求，则根据请求发送响应报文 */
+    /* 有请求，则根据请求将响应报文写入用户缓冲区，之后再一次发送，减少调用 */
     bool writeRet = processWrite(readRet);
     if(!writeRet){
         /* 向写缓冲区写入失败 */
         closeConn();
     }
-    /* 重置EPOLLONESHOT */
+    /* 用户写缓冲有数据待发送，注册EPOLLOUT，重置EPOLLONESHOT */
     modFd(_epollFd, _sockFd, EPOLLOUT, _trigMode);
 }
 
