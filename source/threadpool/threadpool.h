@@ -14,6 +14,8 @@
 #include "../locker/locker.h"
 #include "../mysql/sqlpool.h"
 
+/* 线程池类，功能：创建若干工作线程，不释放，存放在线程数组中；
+   可以通过函数向请求队列添加请求，无请求，工作线程阻塞；有请求，解除阻塞，有信号量进行通知 */
 template<typename T>
 class ThreadPool{
 public:
@@ -131,7 +133,7 @@ template<class T>
 void ThreadPool<T>::run(){
     /* 等待新的请求到来 */
     while(true){
-        /* 阻塞，有未处理的请求，则解除阻塞*/
+        /* 无请求时，工作线程处于阻塞状态；有未处理的请求时，则解除阻塞，进行处理*/
         _unsettledNum.wait();
         _locker.lock();
         if(_workQueue.empty()){

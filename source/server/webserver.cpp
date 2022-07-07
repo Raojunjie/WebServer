@@ -267,7 +267,7 @@ void WebServer::eventLoop(){
                 dealWithRead(sockFd);
             }
             else if(_events[i].events & EPOLLOUT){
-                /* 将响应写回 */
+                /* 写缓冲区由满变成未满，触发EPOLLOUT，将响应写回 */
                 dealWithWrite(sockFd);
             }
         }
@@ -338,13 +338,9 @@ bool WebServer::dealClientData(){
 void WebServer::setTimer(int httpFd, struct sockaddr_in addr){
     _usersTimer[httpFd]._address = addr;
     _usersTimer[httpFd]._sockFd = httpFd;
-    UtilTimer* timer = new UtilTimer();
-    timer->_userData = &_usersTimer[httpFd];
-    timer->_cbFunc = cb_func;
-    time_t cur = time(NULL);
-    timer->_expire = cur + 3*TIME_SLOT;
-    _usersTimer[httpFd]._timer = timer;
-    _utils._timerList.addTimer(timer);
+    _usersTimer[httpFd]._timer = _utils._timerList.addTimer(3*TIME_SLOT);
+    _usersTimer[httpFd]._timer->_userData = &_usersTimer[httpFd];
+    _usersTimer[httpFd]._timer->_cbFunc = cb_func;
 }
 
 /*
@@ -502,9 +498,8 @@ void WebServer::dealWithWrite(int sockFd){
 */
 void WebServer::adjustTimer(UtilTimer* timer){
     time_t cur = time(NULL);
-    /* 重置到期时间 */
-    timer->_expire = cur + 3 * TIME_SLOT;
     /* 重置后需要调整定时器在链表中的位置 */
-    _utils._timerList.adjustTimer(timer);
+    _utils._timerList.adjustTimer(timer, 3*TIME_SLOT);
+
     LOG_INFO("%s","reset timer once");
 }
