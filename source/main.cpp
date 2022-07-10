@@ -38,17 +38,18 @@ bool daemonize(){
     }
 
     /* 改变工作目录 */
-    chdir("/home/raojunjie/work/WebServer");
+    //chdir("/home/raojunjie/work/WebServer");
 
-    /* 关闭已打开的文件描述符 */
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-
-    /* 将标准输入输出都定向到文件 null文件中 */
-    open("null", O_RDONLY);
-    open("null", O_RDWR);
-    open("null", O_RDWR);
+    /* 重定向输入输出 */
+    int fdin = open("/dev/null", O_RDONLY);
+    int fdout = open("/home/raojunjie/work/WebServer/stdout", O_RDWR | O_CREAT,0666);
+    int fderr = open("/home/raojunjie/work/WebServer/stderr", O_RDWR | O_CREAT,0666);
+    dup2(fdin, 0);
+    if(dup2(fdout, 1) == -1){
+        printf("重定向失败\n");
+        exit(-1);
+    }
+    dup2(fderr, 2);
 
     return true;
 }

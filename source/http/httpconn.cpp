@@ -1,5 +1,5 @@
 #include "httpconn.h"
-
+#include <iostream>
 Locker _locker;
 
 const char* ok_200_title = "OK";
@@ -15,6 +15,7 @@ const char *error_500_form = "There was an unusual problem serving the request f
 int HttpConn::_epollFd = -1;  /* epoll的文件描述符 */
 int HttpConn::_userCount = 0; /* 已连接的客户数量 */
 
+map<string,string> _users;   /* sql中的用户 */
 
 /*
 *功能：初始化连接, 并将连接加入epoll中
@@ -547,10 +548,10 @@ HttpConn::HTTP_CODE HttpConn::doRequest(){
         free(urlReal);
 
         /* 提取用户名和密码 */
-        /* user=zhangsan&passwd=123345 */
+        /* user=zhangsan&password=123345 */
         char name[100],password[100];
         int i;
-        for(int i=5; _content[i]!='&'; i++){
+        for(i=5; _content[i]!='&'; i++){
             name[i-5] = _content[i];
         }
         name[i-5] = '\0';
@@ -559,7 +560,6 @@ HttpConn::HTTP_CODE HttpConn::doRequest(){
             password[j] = _content[i];
         }
         password[j] = '\0';
-        LOG_INFO("name: %s; password: %s", name, password);
 
         if(*(p+1) == '3'){
             /*  注册校验, 数据库中是否存在重名的 */
@@ -575,6 +575,7 @@ HttpConn::HTTP_CODE HttpConn::doRequest(){
                 _locker.lock();
                 int ret = mysql_query(_mysql, sqlInsert);
                 _users.insert(pair<string,string>(name,password));
+
                 _locker.unlock();
                 if(!ret){
                     strcpy(_url, "/log.html");

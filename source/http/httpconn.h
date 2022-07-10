@@ -146,8 +146,6 @@ private:
    char* _fileAddress;  /* 响应文件对应内存映射的首地址 */
    struct iovec _iv[2];  /*  用来整合存放响应报文 */
    int _ivCount; 
-
-   map<string,string> _users;   /* sql中的用户 */
 };
 
 
