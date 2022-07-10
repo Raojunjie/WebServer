@@ -18,7 +18,8 @@
 #include <sys/epoll.h>
 #include "../threadpool/threadpool.h"
 #include "../http/httpconn.h"
-#include "../timer/lstTimer.h"
+#include "../timer/twTimer.h"
+#include "utils.h"
 #include "../log/log.h"
 #include "../mysql/sqlpool.h"
 using namespace std;
@@ -54,11 +55,11 @@ public:
 public:
     int _port;          /* 端口号 */
     char* _root;        /* 文件路径，根目录 */
-    int _writeLog;      /*日志写入方式，默认同步 */
-    int _closeLog;      /* 关闭日志，默认不关闭 */
-    int _actorMode;     /*事件处理模式，默认是Proactor */
-    int _pipeFd[2];
-    int _epollFd;       
+    int _writeLog;      /* 日志写入方式，默认同步 */
+    int _closeLog;      /* 关闭日志功能，默认不关闭 */
+    int _actorMode;     /* 事件处理模式，默认是Proactor */
+    int _pipeFd[2];     /* 一对管道，用于信号通信 */
+    int _epollFd;       /* epoll监听文件描述符 */
     HttpConn* _usersHttp;  /* http连接数组 */
 
     SqlPool* _sqlPool;   /* 数据库连接池 */

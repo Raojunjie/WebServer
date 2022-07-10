@@ -23,6 +23,7 @@
 #include "../locker/locker.h"
 using namespace std;
 
+/* http连接类 */
 class HttpConn{
 public:
    
